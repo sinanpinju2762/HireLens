@@ -62,6 +62,22 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    })
+    if (error) throw error
+  }
+
+  async function signInWithLinkedIn() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'linkedin_oidc',
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    })
+    if (error) throw error
+  }
+
   async function resetPassword(email) {
     const { error } = await supabase.auth.resetPasswordForEmail(email)
     if (error) throw error
@@ -80,7 +96,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, profile, loading,
-      signUp, signIn, signOut, resetPassword, refreshProfile,
+      signUp, signIn, signOut, signInWithGoogle, signInWithLinkedIn, resetPassword, refreshProfile,
       displayName, initials, firstName,
     }}>
       {children}

@@ -1,35 +1,43 @@
 import { Link } from 'react-router-dom'
-
-const Logo = () => (
-  <svg viewBox="0 0 32 32" width="28" height="28" fill="none">
-    <rect width="32" height="32" rx="7" fill="#8225C4"/>
-    <polygon points="14,15 21,22 14,29 7,22"   fill="none" stroke="white" strokeWidth="1.3"/>
-    <polygon points="14,17 19,22 14,27 9,22"   fill="none" stroke="white" strokeWidth="1.3"/>
-    <polygon points="14,19 17,22 14,25 11,22"  fill="none" stroke="white" strokeWidth="1.3"/>
-    <polygon points="8,7.5 13.5,13 8,18.5 2.5,13" fill="none" stroke="white" strokeWidth="1.3"/>
-    <polygon points="8,9.5 11.5,13 8,16.5 4.5,13" fill="none" stroke="white" strokeWidth="1.3"/>
-    <polygon points="19,3 23,7 19,11 15,7"     fill="none" stroke="white" strokeWidth="1.3"/>
-    <polygon points="19,4.5 21.5,7 19,9.5 16.5,7" fill="none" stroke="white" strokeWidth="1.3"/>
-    <polygon points="24,14 26,16 24,18 22,16"  fill="none" stroke="white" strokeWidth="1.3"/>
-  </svg>
-)
+import { useState } from 'react'
+import Logo from '../components/Logo'
 
 export default function Landing() {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <div className="landing-body">
+
       {/* Navbar */}
       <nav className="landing-nav">
-        <Link to="/" className="nav-logo"><Logo />HireLens</Link>
+        <Link to="/" className="nav-logo"><Logo size={28}/>HireLens</Link>
         <div className="nav-links">
-          <a href="#features">Product</a>
-          <a href="#">Pricing</a>
-          <a href="#">Resources</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#showcase">Success Stories</a>
         </div>
         <div className="nav-actions">
           <Link to="/login" className="nav-signin">Sign In</Link>
-          <Link to="/signup" className="btn btn-primary btn-sm">Get Started</Link>
+          <Link to="/login?tab=signup" className="btn btn-primary btn-sm">Get Started</Link>
         </div>
+        {/* Hamburger — mobile only */}
+        <button className="nav-hamburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
+          <span style={{ transform: menuOpen ? 'rotate(45deg) translate(5px,5px)' : 'none' }}/>
+          <span style={{ opacity: menuOpen ? 0 : 1 }}/>
+          <span style={{ transform: menuOpen ? 'rotate(-45deg) translate(5px,-5px)' : 'none' }}/>
+        </button>
       </nav>
+
+      {/* Mobile nav drawer */}
+      {menuOpen && (
+        <div className="nav-mobile-drawer">
+          <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
+          <a href="#pricing"  onClick={() => setMenuOpen(false)}>Pricing</a>
+          <a href="#showcase" onClick={() => setMenuOpen(false)}>Success Stories</a>
+          <Link to="/login"            className="nav-signin" onClick={() => setMenuOpen(false)}>Sign In</Link>
+          <Link to="/login?tab=signup" className="btn btn-primary btn-sm" onClick={() => setMenuOpen(false)}>Get Started</Link>
+        </div>
+      )}
 
       {/* Hero */}
       <section style={{ background: 'var(--gradient-hero)' }}>
@@ -42,7 +50,7 @@ export default function Landing() {
             <h1>Master Your<br/>Interviews <span className="highlight">with AI</span></h1>
             <p>The world's most advanced cognitive sanctuary for career preparation. Practice with realistic AI personas and receive real-time emotional and technical feedback.</p>
             <div className="hero-actions">
-              <Link to="/signup" className="btn btn-primary btn-lg">Start Practice →</Link>
+              <Link to="/login?tab=signup" className="btn btn-primary btn-lg">Start Practice →</Link>
               <a href="#features" className="btn btn-secondary btn-lg">View Demo</a>
             </div>
           </div>
@@ -84,9 +92,9 @@ export default function Landing() {
         <p className="section-eyebrow">We've eliminated the friction of interview preparation by combining cutting-edge LLMs with behavioral science.</p>
         <div className="features-grid">
           {[
-            { icon: 'blue', title: 'Mock Interviews', desc: 'Roleplay with hundreds of specialized AI interviewers tailored to specific industries and seniority levels.', svgPath: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>, stroke: '#5B4EFF' },
-            { icon: 'purple', title: 'Instant AI Feedback', desc: 'Receive granular analysis of your body language, tone of voice, and content accuracy within seconds.', svgPath: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>, stroke: '#8B5CF6' },
-            { icon: 'pink', title: 'Confidence Boost', desc: 'Our proprietary training modules help you eliminate filler words and master the art of storytelling.', svgPath: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>, stroke: '#EF4444' },
+            { icon: 'blue',   title: 'Mock Interviews',    desc: 'Roleplay with hundreds of specialized AI interviewers tailored to specific industries and seniority levels.', svgPath: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>, stroke: '#5B4EFF' },
+            { icon: 'purple', title: 'Instant AI Feedback', desc: 'Receive granular analysis of your body language, tone of voice, and content accuracy within seconds.',         svgPath: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>,                    stroke: '#8B5CF6' },
+            { icon: 'pink',   title: 'Confidence Boost',   desc: 'Our proprietary training modules help you eliminate filler words and master the art of storytelling.',          svgPath: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,              stroke: '#EF4444' },
           ].map(f => (
             <div key={f.title} className="feature-card">
               <div className={`feature-icon feature-icon-${f.icon}`}>
@@ -100,14 +108,14 @@ export default function Landing() {
       </section>
 
       {/* Showcase */}
-      <section className="showcase-section">
+      <section id="showcase" className="showcase-section">
         <div className="showcase-inner">
           <div className="showcase-voice">
             <div className="showcase-voice-bg"/>
             <div className="showcase-voice-content">
               <h2>Analyze Every Nuance of Your Voice</h2>
               <p>Our AI tracks your pitch, tempo, and emotional tone to provide an editorial-grade review of your vocal delivery.</p>
-              <Link to="/signup" style={{ background:'var(--gradient-primary)', color:'white', padding:'10px 22px', borderRadius:'var(--radius-full)', fontSize:13, fontWeight:600, textDecoration:'none', display:'inline-block' }}>Explore Vocal Insights</Link>
+              <Link to="/login?tab=signup" style={{ background:'var(--gradient-primary)', color:'white', padding:'10px 22px', borderRadius:'var(--radius-full)', fontSize:13, fontWeight:600, textDecoration:'none', display:'inline-block' }}>Explore Vocal Insights</Link>
             </div>
           </div>
           <div className="showcase-cert">
@@ -128,17 +136,93 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Success Stories */}
+      <section id="showcase" className="ss-section">
+        <div className="ss-eyebrow">Success Stories</div>
+        <h2 className="ss-heading">Trusted by Candidates Who <span className="highlight">Got the Offer</span></h2>
+        <p className="ss-sub">Real results from real people who used HireLens to land roles at the world's top companies.</p>
+
+        <div className="ss-grid">
+          {[
+            {
+              initials: 'SR', name: 'Sophia Rahman', role: 'Software Engineer @ Google',
+              stars: 5, color: '#5B4EFF',
+              quote: '"After 3 failed loops, HireLens helped me identify my exact weak points. Two weeks later I had an offer from Google. The AI feedback is frighteningly accurate."',
+              tag: 'System Design Track',
+            },
+            {
+              initials: 'DC', name: 'David Chen', role: 'Senior PM @ Meta',
+              stars: 5, color: '#8B5CF6',
+              quote: '"The behavioral interview coach pushed me in ways a human coach never did. It called out my vague answers instantly. My confidence went from 40% to 94% in a month."',
+              tag: 'Product Management Track',
+            },
+            {
+              initials: 'AL', name: 'Aisha Laurent', role: 'Data Scientist @ Microsoft',
+              stars: 5, color: '#EC4899',
+              quote: '"I landed 4 offers simultaneously. HireLens made me obsessively prepared. Every question felt familiar because I\'d already practiced 10 variations of it."',
+              tag: 'Data Science Track',
+            },
+            {
+              initials: 'MJ', name: 'Marcus Johnson', role: 'Engineering Manager @ Amazon',
+              stars: 5, color: '#10B981',
+              quote: '"The leadership question simulations are elite. It felt like a real panel interview every time. I walked into Amazon\'s loop feeling like I\'d already done it before."',
+              tag: 'Leadership Track',
+            },
+            {
+              initials: 'PK', name: 'Priya Kapoor', role: 'UX Designer @ Apple',
+              stars: 5, color: '#F59E0B',
+              quote: '"Portfolio critiques, design challenge walkthroughs, stakeholder Q&A — HireLens covered every corner of my Apple design interview. I was over-prepared in the best way."',
+              tag: 'Design Track',
+            },
+            {
+              initials: 'TW', name: 'Tyler Wu', role: 'Quant Analyst @ Jane Street',
+              stars: 5, color: '#3B82F6',
+              quote: '"The mental math and probability drills are no joke. HireLens stress-tested me harder than the actual interview. I felt completely calm on the day."',
+              tag: 'Finance & Quant Track',
+            },
+          ].map(t => (
+            <div key={t.name} className="ss-card">
+              <div className="ss-stars">{'★'.repeat(t.stars)}</div>
+              <p className="ss-quote">{t.quote}</p>
+              <div className="ss-tag">{t.tag}</div>
+              <div className="ss-author">
+                <div className="ss-avatar" style={{ background: t.color }}>{t.initials}</div>
+                <div>
+                  <div className="ss-name">{t.name}</div>
+                  <div className="ss-role">{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Stats bar */}
+        <div className="ss-stats">
+          {[
+            { num: '50k+', lbl: 'Candidates Trained' },
+            { num: '94%',  lbl: 'Offer Success Rate' },
+            { num: '200+', lbl: 'Companies Represented' },
+            { num: '4.9★', lbl: 'Average Rating' },
+          ].map(s => (
+            <div key={s.lbl} className="ss-stat">
+              <div className="ss-stat-num">{s.num}</div>
+              <div className="ss-stat-lbl">{s.lbl}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="cta-section">
+      <section id="pricing" className="cta-section">
         <h2>Ready to Land Your Dream Job?</h2>
         <p>Join over 50,000 candidates who used our cognitive sanctuary to build unshakeable confidence.</p>
-        <Link to="/signup" className="cta-btn">Start Practice for Free</Link>
+        <Link to="/login?tab=signup" className="cta-btn">Start Practice for Free</Link>
       </section>
 
       {/* Footer */}
       <footer className="landing-footer">
         <div>
-          <div className="footer-logo"><Logo/>HireLens</div>
+          <div className="footer-logo"><Logo size={22}/>HireLens</div>
           <div className="footer-copy">© 2026 HireLens. The Cognitive Sanctuary.</div>
         </div>
         <div className="footer-links">
@@ -147,6 +231,7 @@ export default function Landing() {
           <a href="#">Cookie Policy</a>
         </div>
       </footer>
+
     </div>
   )
 }
