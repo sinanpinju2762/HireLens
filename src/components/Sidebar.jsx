@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import Logo from './Logo'
 
 export default function Sidebar({ open = false, onClose = () => {} }) {
-  const { displayName, initials, signOut } = useAuth()
+  const { displayName, initials, avatarUrl, signOut } = useAuth()
   const navigate = useNavigate()
 
   async function handleLogout() {
@@ -19,7 +19,11 @@ export default function Sidebar({ open = false, onClose = () => {} }) {
       </NavLink>
 
       <div className="sidebar-user">
-        <div className="sidebar-avatar">{initials}</div>
+        <div className="sidebar-avatar">
+          {avatarUrl
+            ? <img src={avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' }}/>
+            : initials}
+        </div>
         <div>
           <div className="sidebar-user-name">{displayName}</div>
           <div className="sidebar-user-role">Pro Candidate</div>

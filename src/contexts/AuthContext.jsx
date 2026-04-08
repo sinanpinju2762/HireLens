@@ -92,12 +92,13 @@ export function AuthProvider({ children }) {
   const displayName  = profile?.name || user?.email || ''
   const initials     = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U'
   const firstName    = displayName.split(' ')[0] || 'there'
+  const avatarUrl    = profile?.avatar_url || null
 
   return (
     <AuthContext.Provider value={{
       user, profile, loading,
       signUp, signIn, signOut, signInWithGoogle, signInWithLinkedIn, resetPassword, refreshProfile,
-      displayName, initials, firstName,
+      displayName, initials, firstName, avatarUrl,
     }}>
       {children}
     </AuthContext.Provider>

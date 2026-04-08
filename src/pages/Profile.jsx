@@ -1,12 +1,60 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
 export default function Profile() {
-  const { user, profile, initials, displayName } = useAuth()
-  const [resumes, setResumes] = useState([])
+  const { user, profile, initials, displayName, avatarUrl, refreshProfile } = useAuth()
+  const fileRef = useRef()
+  const [uploading, setUploading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState(avatarUrl)
+
+  useEffect(() => { setAvatarPreview(avatarUrl) }, [avatarUrl])
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const ext  = file.name.split('.').pop()
+      const path = `${user.id}/avatar.${ext}`
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (upErr) throw upErr
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const url = `${data.publicUrl}?t=${Date.now()}`
+      await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+      setAvatarPreview(url)
+      await refreshProfile()
+    } catch (err) {
+      alert('Upload failed: ' + err.message)
+    } finally { setUploading(false) }
+  }
+  const [resumes,     setResumes]     = useState([])
+  const [editOpen,    setEditOpen]    = useState(false)
+  const [editName,    setEditName]    = useState('')
+  const [editSaving,  setEditSaving]  = useState(false)
+  const [editError,   setEditError]   = useState('')
+
+  function openEdit() {
+    setEditName(displayName)
+    setEditError('')
+    setEditOpen(true)
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault()
+    if (!editName.trim()) return setEditError('Name cannot be empty.')
+    setEditSaving(true)
+    try {
+      const { error } = await supabase.from('profiles').update({ name: editName.trim() }).eq('id', user.id)
+      if (error) throw error
+      await refreshProfile()
+      setEditOpen(false)
+    } catch (err) {
+      setEditError(err.message || 'Failed to save.')
+    } finally { setEditSaving(false) }
+  }
 
   useEffect(() => {
     if (!user) return
@@ -30,7 +78,17 @@ export default function Profile() {
       <div className="profile-layout">
         {/* Header Card */}
         <div className="profile-header-card">
-          <div className="profile-avatar-lg">{initials}</div>
+          <div className="profile-avatar-lg-wrap" onClick={() => fileRef.current.click()} title="Click to change photo">
+            {avatarPreview
+              ? <img src={avatarPreview} alt="avatar" className="profile-avatar-lg-img" />
+              : <span>{initials}</span>}
+            <div className="profile-avatar-edit">
+              {uploading
+                ? <span className="spinner" style={{ width:14, height:14, borderWidth:2 }}/>
+                : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleAvatarChange}/>
+          </div>
           <div style={{ flex:1 }}>
             <div className="profile-name">{displayName}</div>
             <div className="profile-role-badge">
@@ -39,7 +97,7 @@ export default function Profile() {
             </div>
             <div className="profile-email">{user?.email}</div>
           </div>
-          <button className="btn btn-secondary btn-sm">Edit Profile</button>
+          <button className="btn btn-secondary btn-sm" onClick={openEdit}>Edit Profile</button>
         </div>
 
         {/* Stats Grid */}
@@ -124,6 +182,55 @@ export default function Profile() {
           }
         </div>
       </div>
+      {/* Edit Profile Modal */}
+      {editOpen && (
+        <div className="legal-overlay" onClick={() => setEditOpen(false)}>
+          <div className="legal-modal" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+            <div className="legal-header">
+              <h2 className="legal-title">Edit Profile</h2>
+              <button className="legal-close" onClick={() => setEditOpen(false)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="18" height="18" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={saveEdit}>
+              <div className="legal-body" style={{ padding: '24px' }}>
+                {editError && <div className="ac-error" style={{ marginBottom: 16 }}>{editError}</div>}
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    placeholder="Enter your full name"
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group" style={{ marginTop: 16 }}>
+                  <label className="form-label">Email Address</label>
+                  <input
+                    className="form-input"
+                    type="email"
+                    value={user?.email}
+                    disabled
+                    style={{ opacity: .6, cursor: 'not-allowed' }}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Email cannot be changed.</span>
+                </div>
+              </div>
+              <div className="legal-footer">
+                <button type="submit" className="legal-agree-btn" disabled={editSaving}>
+                  {editSaving
+                    ? <span className="spinner" style={{ width:18,height:18,borderWidth:2,display:'inline-block',verticalAlign:'middle' }}/>
+                    : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }
