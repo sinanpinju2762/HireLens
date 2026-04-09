@@ -3,7 +3,7 @@
 // ============================================================
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''
-const MODEL   = 'gemini-2.0-flash'
+const MODEL   = 'gemini-1.5-flash'
 const IS_DEMO = !API_KEY || API_KEY.includes('your-key') || API_KEY.length < 20
 
 async function callGemini(prompt, maxTokens = 512) {
@@ -22,8 +22,7 @@ async function callGemini(prompt, maxTokens = 512) {
   )
 
   if (res.status === 429) {
-    // Rate limited — return null so callers use demo fallback
-    return null
+    throw new Error('RATE_LIMITED')
   }
 
   if (!res.ok) throw new Error(`Gemini API error: ${res.status}`)

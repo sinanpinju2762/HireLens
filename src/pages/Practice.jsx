@@ -110,7 +110,12 @@ export default function Practice() {
       }
       showToast('Analysis complete!', 'success')
     } catch (err) {
-      console.error(err); showToast('Analysis failed. Please try again.', 'error')
+      console.error(err)
+      if (err.message === 'RATE_LIMITED') {
+        showToast('AI rate limit reached. Please wait 1 minute and try again.', 'error')
+      } else {
+        showToast('Analysis failed. Please try again.', 'error')
+      }
     } finally {
       setLoading(false)
     }
