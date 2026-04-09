@@ -5,11 +5,40 @@ import { supabase } from '../lib/supabase'
 import { analyzeInterviewResponse } from '../lib/claude'
 
 const QUESTIONS = [
+  // Behavioral
   { text: 'Tell me about a time you handled a conflict within a team.', category: 'Behavioral' },
   { text: 'Describe a situation where you had to meet a tight deadline. How did you manage it?', category: 'Behavioral' },
-  { text: 'Tell me about the most challenging project you have worked on.', category: 'Problem Solving' },
-  { text: 'How do you prioritize competing deadlines in a high-pressure environment?', category: 'Leadership' },
   { text: 'What is your greatest professional failure and what did you learn?', category: 'Behavioral' },
+  { text: 'Tell me about a time you went above and beyond for a project or customer.', category: 'Behavioral' },
+  { text: 'Describe a situation where you had to adapt quickly to a major change at work.', category: 'Behavioral' },
+  { text: 'Tell me about a time you disagreed with your manager. How did you handle it?', category: 'Behavioral' },
+  { text: 'Describe a time when you had to work with a difficult colleague.', category: 'Behavioral' },
+  { text: 'Tell me about a time you made a mistake. How did you fix it?', category: 'Behavioral' },
+
+  // Problem Solving
+  { text: 'Tell me about the most challenging project you have worked on.', category: 'Problem Solving' },
+  { text: 'Describe a time you had to solve a problem with limited resources or information.', category: 'Problem Solving' },
+  { text: 'Tell me about a time you identified a problem before it became serious.', category: 'Problem Solving' },
+  { text: 'How do you approach breaking down a complex problem into smaller parts?', category: 'Problem Solving' },
+
+  // Leadership
+  { text: 'How do you prioritize competing deadlines in a high-pressure environment?', category: 'Leadership' },
+  { text: 'Describe a time when you led a team through a difficult situation.', category: 'Leadership' },
+  { text: 'Tell me about a time you had to motivate a demotivated team member.', category: 'Leadership' },
+  { text: 'How do you handle giving negative feedback to someone on your team?', category: 'Leadership' },
+  { text: 'Describe a time you had to make a tough decision with incomplete information.', category: 'Leadership' },
+
+  // Technical
+  { text: 'How do you stay up to date with new technologies in your field?', category: 'Technical' },
+  { text: 'Describe a technical challenge you faced and how you solved it.', category: 'Technical' },
+  { text: 'How do you ensure the quality and reliability of your work?', category: 'Technical' },
+
+  // Career
+  { text: 'Where do you see yourself in 5 years?', category: 'Career' },
+  { text: 'Why do you want to leave your current job?', category: 'Career' },
+  { text: 'What motivates you in your work?', category: 'Career' },
+  { text: 'Tell me about yourself and your background.', category: 'Career' },
+  { text: 'What are your greatest strengths and weaknesses?', category: 'Career' },
 ]
 
 function badgeClass(r = '') {
@@ -18,16 +47,21 @@ function badgeClass(r = '') {
   return 'badge-good'
 }
 
+const CATEGORIES = ['All', 'Behavioral', 'Problem Solving', 'Leadership', 'Technical', 'Career']
+
 export default function Practice() {
   const { user, refreshProfile } = useAuth()
-  const [qIdx,      setQIdx]      = useState(0)
-  const [answer,    setAnswer]    = useState('')
-  const [loading,   setLoading]   = useState(false)
-  const [feedback,  setFeedback]  = useState(null)
-  const [seconds,   setSeconds]   = useState(300)
-  const [toast,     setToast]     = useState(null)
+  const [category,   setCategory]   = useState('All')
+  const [qIdx,       setQIdx]       = useState(0)
+  const [answer,     setAnswer]     = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [feedback,   setFeedback]   = useState(null)
+  const [seconds,    setSeconds]    = useState(300)
+  const [toast,      setToast]      = useState(null)
   const timerRef = useRef(null)
   const feedbackRef = useRef(null)
+
+  const filtered = category === 'All' ? QUESTIONS : QUESTIONS.filter(q => q.category === category)
 
   function showToast(msg, type = 'default') {
     setToast({ msg, type })
@@ -54,16 +88,16 @@ export default function Practice() {
     }
     setLoading(true)
     try {
-      const fb = await analyzeInterviewResponse(QUESTIONS[qIdx].text, answer)
+      const fb = await analyzeInterviewResponse(filtered[qIdx].text, answer)
       setFeedback(fb)
       setTimeout(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
       // Save to Supabase
       if (user) {
         await supabase.from('interviews').insert({
           user_id:  user.id,
-          question: QUESTIONS[qIdx].text,
+          question: filtered[qIdx].text,
           answer,
-          category: QUESTIONS[qIdx].category,
+          category: filtered[qIdx].category,
           score:    fb.overall_score ?? 0,
           feedback: fb,
         })
@@ -92,7 +126,7 @@ export default function Practice() {
         <div className="practice-header">
           <div>
             <h2>Focused Practice</h2>
-            <p style={{ fontSize:13, color:'var(--text-muted)' }}>Session: {QUESTIONS[qIdx].category}</p>
+            <p style={{ fontSize:13, color:'var(--text-muted)' }}>Session: {filtered[qIdx]?.category}</p>
           </div>
           <div className="timer-badge">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -100,20 +134,36 @@ export default function Practice() {
           </div>
         </div>
 
+        {/* Category Filter */}
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
+          {CATEGORIES.map(cat => (
+            <button key={cat}
+              onClick={() => { setCategory(cat); setQIdx(0); setAnswer(''); setFeedback(null) }}
+              style={{
+                padding:'5px 14px', borderRadius:20, fontSize:12, fontWeight:600, cursor:'pointer', border:'1.5px solid',
+                background: category === cat ? 'var(--primary)' : 'transparent',
+                color: category === cat ? '#fff' : 'var(--primary)',
+                borderColor: 'var(--primary)',
+              }}>
+              {cat}
+            </button>
+          ))}
+        </div>
+
         {/* Question Nav */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
           <div style={{ display:'flex', gap:8 }}>
             <button className="btn btn-secondary btn-sm" onClick={() => loadQuestion(qIdx - 1)} disabled={qIdx === 0}>← Prev</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => loadQuestion(qIdx + 1)} disabled={qIdx === QUESTIONS.length - 1}>Next →</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => loadQuestion(qIdx + 1)} disabled={qIdx === filtered.length - 1}>Next →</button>
           </div>
-          <span style={{ fontSize:12, color:'var(--text-muted)' }}>Question {qIdx + 1} of {QUESTIONS.length}</span>
+          <span style={{ fontSize:12, color:'var(--text-muted)' }}>Question {qIdx + 1} of {filtered.length}</span>
         </div>
 
         {/* Prompt */}
         <div className="prompt-card">
           <div className="prompt-badge">Prompt</div>
           <div className="prompt-quote-icon">"</div>
-          <h3>{QUESTIONS[qIdx].text}</h3>
+          <h3>{filtered[qIdx]?.text}</h3>
         </div>
 
         {/* Response */}
