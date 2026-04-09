@@ -1,45 +1,48 @@
 // ============================================================
-// HireLens — Claude API helpers
-// For production: proxy these calls through a Supabase Edge
-// Function to keep the API key server-side.
+// HireLens — Gemini API helpers
 // ============================================================
 
-const API_KEY = import.meta.env.VITE_CLAUDE_API_KEY || ''
-const MODEL   = 'claude-haiku-4-5-20251001'
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''
+const MODEL   = 'gemini-2.0-flash'
+const IS_DEMO = !API_KEY || API_KEY.includes('your-key') || API_KEY.length < 20
 
-async function callClaude(prompt, maxTokens = 512) {
-  if (!API_KEY) return null  // demo mode fallback handled by callers
+async function callGemini(prompt, maxTokens = 512) {
+  if (IS_DEMO) return null  // demo mode fallback handled by callers
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: maxTokens },
+      }),
+    }
+  )
 
-  if (!res.ok) throw new Error(`Claude API error: ${res.status}`)
+  if (res.status === 429) {
+    // Rate limited — return null so callers use demo fallback
+    return null
+  }
+
+  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`)
   const data = await res.json()
-  const text = data.content[0].text.trim()
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+  if (!text) throw new Error('Empty response from Gemini')
   const match = text.match(/\{[\s\S]*\}/)
-  if (!match) throw new Error('Could not parse Claude response')
+  if (!match) throw new Error('Could not parse Gemini response')
   return JSON.parse(match[0])
 }
 
 // ---- Interview Response Analysis ---------------------------
 export async function analyzeInterviewResponse(question, answer) {
-  const result = await callClaude(`You are an expert interview coach. Analyze this interview answer and provide structured feedback.
+  const result = await callGemini(`You are an expert interview coach. Analyze this interview answer and provide structured feedback.
 
 Interview Question: "${question}"
 Candidate's Answer: "${answer}"
 
-Respond ONLY with JSON:
+Respond ONLY with JSON (no extra text):
 {
   "tone_rating": "Excellent|Good|Needs Improvement",
   "tone_feedback": "1-2 sentence feedback on tone and delivery",
@@ -66,14 +69,14 @@ Respond ONLY with JSON:
 export async function analyzeResume(resumeText, jobTitle = '') {
   const jobContext = jobTitle ? `The candidate is targeting: ${jobTitle}.` : ''
 
-  const result = await callClaude(`You are an expert resume coach. Analyze this resume.
+  const result = await callGemini(`You are an expert resume coach. Analyze this resume.
 
 ${jobContext}
 
 Resume:
 ${resumeText}
 
-Respond ONLY with JSON:
+Respond ONLY with JSON (no extra text):
 {
   "score": <number 0-100>,
   "summary": "2-3 sentence overall assessment",

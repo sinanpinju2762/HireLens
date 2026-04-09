@@ -44,7 +44,7 @@ export default function ResumeAnalyzer() {
 
       if (user) {
         await supabase.from('resumes').insert({ user_id: user.id, file_name: file.name, score: analysis.score, feedback: analysis })
-        await supabase.rpc('increment_resume_count', { uid: user.id }).catch(() => null)
+        try { await supabase.rpc('increment_resume_count', { uid: user.id }) } catch {}
         await refreshProfile()
       }
       showToast('Analysis complete!', 'success')
