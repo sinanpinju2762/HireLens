@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import ScoreCircle from '../components/ScoreCircle'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,11 +10,15 @@ const STEPS = ['Parsing document structure…', 'Identifying skills and gaps…'
 
 export default function ResumeAnalyzer() {
   const { user, refreshProfile } = useAuth()
+  const location = useLocation()
+  const preloaded = location.state?.results
+  const preloadedName = location.state?.fileName
+
   const [file,     setFile]     = useState(null)
   const [jobTitle, setJobTitle] = useState('')
-  const [phase,    setPhase]    = useState('upload') // upload | analyzing | results
+  const [phase,    setPhase]    = useState(preloaded ? 'results' : 'upload')
   const [stepDone, setStepDone] = useState([])
-  const [results,  setResults]  = useState(null)
+  const [results,  setResults]  = useState(preloaded || null)
   const [dragOver, setDragOver] = useState(false)
   const [toast,    setToast]    = useState(null)
   const inputRef = useRef()
@@ -140,7 +145,7 @@ export default function ResumeAnalyzer() {
             <div className="resume-score-row">
               <ScoreCircle score={results.score}/>
               <div className="resume-score-info">
-                <div className="resume-score-title">Resume Score — {file?.name}</div>
+                <div className="resume-score-title">Resume Score — {file?.name || preloadedName}</div>
                 <p>{results.summary}</p>
               </div>
             </div>

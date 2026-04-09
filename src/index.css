@@ -1132,7 +1132,7 @@ p  { color: var(--text-secondary); }
 .fill-excellent { background: var(--success); }
 .fill-good  { background: var(--primary); }
 .fill-improve { background: var(--warning); }
-.view-analysis-link { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .06em; }
+.view-analysis-link { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .06em; background: none; border: none; cursor: pointer; padding: 0; }
 .view-analysis-link:hover { text-decoration: underline; }
 .load-more-btn { display: flex; margin: 24px auto 0; background: #F3F4F6; color: var(--text-secondary); font-weight: 700; padding: 12px 32px; border-radius: var(--radius-full); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; transition: var(--transition); border: none; cursor: pointer; }
 .load-more-btn:hover { background: #E5E7EB; }

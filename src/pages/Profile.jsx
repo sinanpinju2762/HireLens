@@ -175,7 +175,7 @@ export default function Profile() {
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                   <div style={{ fontSize:'1.1rem', fontWeight:800, color:'var(--primary)' }}>{r.score}<span style={{ fontSize:11, fontWeight:400, color:'var(--text-muted)' }}>/100</span></div>
-                  <Link to="/resume" style={{ fontSize:12, fontWeight:700, color:'var(--primary)' }}>View →</Link>
+                  <Link to="/resume" state={{ results: r.feedback, fileName: r.file_name }} style={{ fontSize:12, fontWeight:700, color:'var(--primary)' }}>View →</Link>
                 </div>
               </div>
             ))

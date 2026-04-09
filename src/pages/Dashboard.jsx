@@ -5,40 +5,48 @@ import ScoreCircle from '../components/ScoreCircle'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
-const WEEKLY_TARGET = 32
+const WEEKLY_TARGET = 10
 
-const STATIC_ACTIVITY = [
-  { company: 'Google',  role: 'Systems Architect',   date: 'Oct 24, 2024', score: 92, status: 'completed' },
-  { company: 'Airbnb',  role: 'Lead UX Designer',    date: 'Oct 22, 2024', score: 78, status: 'completed' },
-  { company: 'Stripe',  role: 'Software Engineer II', date: 'Oct 19, 2024', score: 84, status: 'partial'   },
-]
+function scoreClass(s) { return s >= 85 ? 'badge-excellent' : s >= 65 ? 'badge-good' : 'badge-improve' }
+function scoreLabel(s) { return s >= 85 ? 'Excellent' : s >= 65 ? 'Good' : 'Needs Work' }
 
 export default function Dashboard() {
-  const { profile, firstName } = useAuth()
+  const { user, profile, firstName } = useAuth()
   const [interviews, setInterviews] = useState([])
+  const [loading,    setLoading]    = useState(true)
+
+  const [allScores, setAllScores] = useState([])
 
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase
-        .from('interviews')
-        .select('id, question, score, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5)
-      if (data?.length) setInterviews(data)
-    }
-    load()
-  }, [])
+    if (!user) return
+    // Fetch recent 5 for display
+    supabase
+      .from('interviews')
+      .select('id, question, category, score, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => { setInterviews(data || []); setLoading(false) })
+    // Fetch all scores for accurate average
+    supabase
+      .from('interviews')
+      .select('score')
+      .eq('user_id', user.id)
+      .then(({ data }) => { if (data?.length) setAllScores(data) })
+  }, [user])
 
-  const totalInterviews = profile?.total_interviews ?? 24
-  const avgScore        = profile?.avg_score        ?? 84
+  const totalInterviews = allScores.length || profile?.total_interviews || 0
+  const avgScore = allScores.length
+    ? Math.round(allScores.reduce((sum, r) => sum + (r.score || 0), 0) / allScores.length)
+    : profile?.avg_score ?? 0
   const done            = Math.min(totalInterviews, WEEKLY_TARGET)
-  const pct             = Math.round((done / WEEKLY_TARGET) * 100)
+  const pct             = WEEKLY_TARGET > 0 ? Math.round((done / WEEKLY_TARGET) * 100) : 0
 
   return (
     <AppLayout>
       <div className="welcome-section">
         <h2>Welcome back, {firstName} 👋</h2>
-        <p>Your interview readiness is at an all-time high. Ready to sharpen your skills?</p>
+        <p>Your interview readiness is improving. Ready to sharpen your skills today?</p>
       </div>
 
       <div className="dashboard-grid">
@@ -50,11 +58,11 @@ export default function Dashboard() {
               <svg width="10" height="10" viewBox="0 0 10 10" fill="white"><circle cx="5" cy="5" r="5"/></svg>
               Recommended for You
             </div>
-            <h3>Mock Interview: Senior Product Designer at Figma</h3>
-            <p>Practice specific behavioural and portfolio walkthrough questions tailored for top-tier design roles.</p>
+            <h3>Mock Interview: Behavioral & Leadership Questions</h3>
+            <p>Practice specific behavioural questions using the STAR method to boost your confidence and score.</p>
             <div className="recommended-actions">
               <Link to="/practice" className="btn-white">Start Practice</Link>
-              <span className="estimated-time">Estimated: 45 mins</span>
+              <span className="estimated-time">Estimated: 20 mins</span>
             </div>
           </div>
 
@@ -75,15 +83,15 @@ export default function Dashboard() {
             <div className="card">
               <div className="progress-label-sm">Weekly Progress</div>
               <div className="progress-header">
-                <div className="progress-title">Great pace, {firstName}!</div>
+                <div className="progress-title">{pct >= 100 ? 'Target reached!' : `Great pace, ${firstName}!`}</div>
                 <div className="progress-pct">{pct}%</div>
               </div>
               <div className="progress-bar-track">
-                <div className="progress-bar-fill" style={{ width: `${pct}%` }}/>
+                <div className="progress-bar-fill" style={{ width: `${Math.min(pct, 100)}%` }}/>
               </div>
               <div className="progress-meta">
                 <span>Weekly Target: {WEEKLY_TARGET} Interviews</span>
-                <span>{WEEKLY_TARGET - done} Remaining</span>
+                <span>{Math.max(WEEKLY_TARGET - done, 0)} Remaining</span>
               </div>
             </div>
           </div>
@@ -93,34 +101,45 @@ export default function Dashboard() {
             <h3>Recent Activity</h3>
             <Link to="/history" className="view-all-link">View All History</Link>
           </div>
-          <div className="activity-table">
-            <div className="activity-table-head">
-              <span>Company / Role</span>
-              <span>Date</span>
-              <span>Score</span>
-              <span>Status</span>
-              <span>Action</span>
+
+          {loading ? (
+            <div style={{ textAlign:'center', padding:32 }}><div className="spinner"/></div>
+          ) : interviews.length === 0 ? (
+            <div className="card" style={{ textAlign:'center', padding:40, color:'var(--text-muted)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" strokeLinecap="round" strokeLinejoin="round" style={{ margin:'0 auto 12px', display:'block', opacity:.4 }}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <p style={{ marginBottom:12 }}>No interviews yet. Start your first practice!</p>
+              <Link to="/practice" className="btn btn-primary btn-sm">Start Practice →</Link>
             </div>
-            {STATIC_ACTIVITY.map((row, i) => (
-              <div key={i} className="activity-row">
-                <div className="company-cell">
-                  <div className="company-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                  </div>
-                  <div>
-                    <div className="company-name">{row.company}</div>
-                    <div className="company-role">{row.role}</div>
-                  </div>
-                </div>
-                <span style={{ fontSize:13, color:'var(--text-secondary)' }}>{row.date}</span>
-                <span className="score-cell">{row.score} <span>/100</span></span>
-                <span><span className={`badge badge-${row.status}`}>{row.status}</span></span>
-                <Link to="/history" className="action-btn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </Link>
+          ) : (
+            <div className="activity-table">
+              <div className="activity-table-head">
+                <span>Question</span>
+                <span>Category</span>
+                <span>Score</span>
+                <span>Rating</span>
+                <span>Action</span>
               </div>
-            ))}
-          </div>
+              {interviews.map((row) => (
+                <div key={row.id} className="activity-row">
+                  <div className="company-cell">
+                    <div className="company-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </div>
+                    <div>
+                      <div className="company-name" style={{ fontSize:12, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.question}</div>
+                      <div className="company-role">{new Date(row.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize:12, color:'var(--text-secondary)' }}>{row.category || 'Behavioral'}</span>
+                  <span className="score-cell">{row.score} <span>/100</span></span>
+                  <span><span className={`badge ${scoreClass(row.score)}`}>{scoreLabel(row.score)}</span></span>
+                  <Link to="/history" className="action-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: Score Card */}
@@ -129,11 +148,17 @@ export default function Dashboard() {
             <div className="score-card-inner">
               <div className="score-card-label">Average Score</div>
               <ScoreCircle score={avgScore} />
-              <p style={{ fontSize:11, color:'var(--text-muted)', textAlign:'center' }}>Based on last 10 sessions</p>
-              <div className="score-improvement">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                +12% From Last Week
-              </div>
+              <p style={{ fontSize:11, color:'var(--text-muted)', textAlign:'center' }}>Based on your {totalInterviews} session{totalInterviews !== 1 ? 's' : ''}</p>
+              {totalInterviews === 0 ? (
+                <div style={{ textAlign:'center', marginTop:12 }}>
+                  <Link to="/practice" className="btn btn-primary btn-sm" style={{ fontSize:12 }}>Start First Interview</Link>
+                </div>
+              ) : (
+                <div className="score-improvement">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                  Keep practicing to improve!
+                </div>
+              )}
             </div>
           </div>
         </div>

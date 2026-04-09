@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+
 import AppLayout from '../components/AppLayout'
 import ScoreCircle from '../components/ScoreCircle'
 import { useAuth } from '../contexts/AuthContext'
@@ -29,6 +30,9 @@ function fmtDate(d) {
 }
 
 function HistoryEntry({ item }) {
+  const [open, setOpen] = useState(false)
+  const fb = item.feedback || {}
+
   return (
     <div className="history-entry">
       <div className="history-entry-header">
@@ -44,11 +48,11 @@ function HistoryEntry({ item }) {
         <div className="history-metrics">
           <span className="history-metric">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            {Math.floor(Math.random() * 3 + 1)}m {Math.floor(Math.random() * 60)}s
+            Score: {item.score}/100
           </span>
           <span className="history-metric">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-            Tone: {item.feedback?.tone_rating || 'Analytical'}
+            Tone: {fb.tone_rating || 'Analytical'}
           </span>
         </div>
         <div className="history-confidence">
@@ -57,8 +61,31 @@ function HistoryEntry({ item }) {
             <div className={`confidence-fill ${fillClass(item.score)}`} style={{ width: `${item.score}%` }}/>
           </div>
         </div>
-        <Link to="/practice" className="view-analysis-link">View Analysis</Link>
+        <button className="view-analysis-link" onClick={() => setOpen(o => !o)}>
+          {open ? 'Hide Analysis ▲' : 'View Analysis ▼'}
+        </button>
       </div>
+
+      {open && (
+        <div style={{ marginTop:16, padding:'16px', background:'#F8F7FF', borderRadius:12, borderTop:'2px solid var(--primary-light)' }}>
+          <div style={{ fontWeight:700, fontSize:13, marginBottom:12, color:'var(--primary)' }}>
+            Overall Score: {item.score}/100
+          </div>
+          {[
+            { label:'Tone & Poise',       rating: fb.tone_rating,      text: fb.tone_feedback },
+            { label:'STAR Structure',      rating: fb.structure_rating, text: fb.structure_feedback },
+            { label:'Quantifiable Impact', rating: fb.impact_rating,    text: fb.impact_feedback },
+          ].map(f => f.label && (
+            <div key={f.label} style={{ marginBottom:10 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <span style={{ fontSize:13, fontWeight:600 }}>{f.label}</span>
+                {f.rating && <span className={`badge ${f.rating?.toLowerCase().includes('excel') ? 'badge-excellent' : f.rating?.toLowerCase().includes('needs') ? 'badge-improve' : 'badge-good'}`}>{f.rating}</span>}
+              </div>
+              {f.text && <p style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>{f.text}</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

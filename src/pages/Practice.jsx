@@ -27,6 +27,7 @@ export default function Practice() {
   const [seconds,   setSeconds]   = useState(300)
   const [toast,     setToast]     = useState(null)
   const timerRef = useRef(null)
+  const feedbackRef = useRef(null)
 
   function showToast(msg, type = 'default') {
     setToast({ msg, type })
@@ -55,6 +56,7 @@ export default function Practice() {
     try {
       const fb = await analyzeInterviewResponse(QUESTIONS[qIdx].text, answer)
       setFeedback(fb)
+      setTimeout(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
       // Save to Supabase
       if (user) {
         await supabase.from('interviews').insert({
@@ -65,9 +67,11 @@ export default function Practice() {
           score:    fb.overall_score ?? 0,
           feedback: fb,
         })
-        await supabase.from('profiles').update({
-          total_interviews: (await supabase.from('profiles').select('total_interviews').eq('id', user.id).single()).data?.total_interviews + 1 || 1,
-        }).eq('id', user.id)
+        // Recalculate avg_score and total from all interviews
+        const { data: all } = await supabase.from('interviews').select('score').eq('user_id', user.id)
+        const total = all?.length ?? 1
+        const avg   = all ? Math.round(all.reduce((sum, r) => sum + (r.score || 0), 0) / total) : fb.overall_score
+        await supabase.from('profiles').update({ total_interviews: total, avg_score: avg }).eq('id', user.id)
         await refreshProfile()
       }
       showToast('Analysis complete!', 'success')
@@ -131,13 +135,18 @@ export default function Practice() {
 
         {/* Feedback */}
         {feedback && (
-          <div>
+          <div ref={feedbackRef}>
             <div className="feedback-section-header">
               <h3>Immediate Feedback Insights</h3>
-              <div className="feedback-badges">
-                <span className="badge badge-good">Good</span>
-                <span className="badge badge-excellent">Excellent</span>
-                <span className="badge badge-improve">Improve</span>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ background:'var(--primary)', color:'#fff', borderRadius:12, padding:'6px 16px', fontWeight:800, fontSize:18 }}>
+                  {feedback.overall_score}<span style={{ fontSize:12, fontWeight:400, opacity:.8 }}>/100</span>
+                </div>
+                <div className="feedback-badges">
+                  <span className="badge badge-good">Good</span>
+                  <span className="badge badge-excellent">Excellent</span>
+                  <span className="badge badge-improve">Improve</span>
+                </div>
               </div>
             </div>
             <div className="feedback-grid">
