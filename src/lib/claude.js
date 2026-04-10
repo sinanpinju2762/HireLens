@@ -3,7 +3,7 @@
 // ============================================================
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''
-const MODEL   = 'gemini-1.5-flash'
+const MODEL   = 'gemini-2.0-flash-lite'
 const IS_DEMO = !API_KEY || API_KEY.includes('your-key') || API_KEY.length < 20
 
 async function callGemini(prompt, maxTokens = 512) {
